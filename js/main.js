@@ -12,24 +12,129 @@ document.addEventListener('DOMContentLoaded', () => {
   const year = document.querySelector('[data-year]');
   if (year) year.textContent = new Date().getFullYear();
 
-  const forms = document.querySelectorAll('form[data-inquiry]');
-  forms.forEach(form => {
-    form.addEventListener('submit', e => {
-      e.preventDefault();
-      const status = form.querySelector('.form-status');
-      if (!form.checkValidity()) {
-        form.reportValidity();
-        return;
-      }
-      const data = Object.fromEntries(new FormData(form).entries());
-      console.log('Tarankan inquiry:', data);
-      if (status) {
-        status.textContent = 'Thank you. Your inquiry has been recorded on this demo site. Connect this form to your email/backend before launch.';
-        status.style.marginTop = '15px';
-      }
-      form.reset();
+//   const forms = document.querySelectorAll('form[data-inquiry]');
+//   forms.forEach(form => {
+//     form.addEventListener('submit', e => {
+//       e.preventDefault();
+//       const status = form.querySelector('.form-status');
+//       if (!form.checkValidity()) {
+//         form.reportValidity();
+//         return;
+//       }
+//       const data = Object.fromEntries(new FormData(form).entries());
+//       console.log('Tarankan inquiry:', data);
+//       if (status) {
+//         status.textContent = 'Thank you. Your inquiry has been recorded on this demo site. Connect this form to your email/backend before launch.';
+//         status.style.marginTop = '15px';
+//       }
+//       form.reset();
+//     });
+//   });
+
+    const forms = document.querySelectorAll('form[data-inquiry]');
+
+forms.forEach(form => {
+
+    form.addEventListener('submit', async e => {
+
+        e.preventDefault();
+
+        const status = form.querySelector('.form-status');
+        const submitButton = form.querySelector('button[type="submit"]');
+
+        if (!form.checkValidity()) {
+            form.reportValidity();
+            return;
+        }
+
+
+        if (status) {
+            status.textContent = 'Sending your inquiry...';
+            status.style.marginTop = '15px';
+        }
+
+
+        if (submitButton) {
+            submitButton.disabled = true;
+            submitButton.textContent = 'Sending...';
+        }
+
+
+        const formData = new FormData(form);
+
+
+        /*
+         * Automatically tell PHP which page submitted
+         * the inquiry.
+         */
+        formData.append(
+            'source_page',
+            window.location.pathname
+        );
+
+
+        try {
+
+            const response = await fetch(
+                'send-inquiry.php',
+                {
+                    method: 'POST',
+                    body: formData
+                }
+            );
+
+
+            const result = await response.json();
+
+
+            if (!response.ok || !result.success) {
+
+                throw new Error(
+                    result.message ||
+                    'Unable to send inquiry.'
+                );
+            }
+
+
+            if (status) {
+                status.textContent =
+                    result.message;
+
+                status.style.marginTop = '15px';
+            }
+
+
+            form.reset();
+
+
+        } catch (error) {
+
+            console.error(
+                'Inquiry error:',
+                error
+            );
+
+
+            if (status) {
+                status.textContent =
+                    error.message ||
+                    'Something went wrong. Please try again.';
+
+                status.style.marginTop = '15px';
+            }
+
+        } finally {
+
+            if (submitButton) {
+                submitButton.disabled = false;
+                submitButton.textContent = 'Send Inquiry';
+            }
+
+        }
+
     });
-  });
+
+});
 
   document.querySelectorAll('[data-reveal]').forEach(el => {
     const io = new IntersectionObserver(entries => {
